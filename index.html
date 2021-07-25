@@ -1,4 +1,9 @@
 <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script src="sha256.js"></script>
+</head>
+<body>
 <script>
 function hexVarintToInteger(str) {
   var s = String(str);
@@ -43,6 +48,17 @@ function integerToHexVarint(i) {
   }
 }
 
+function utf8StringToHex(str) {
+  var s = String(str);
+  var result = '';
+  for (var i = 0; i < s.length; i++) {
+    var hex = s.charCodeAt(i).toString(16);
+    if (hex.length < 2) { hex = '0' + hex; }
+    result += hex;
+  }
+  return result;
+}
+
 function ipfsBlockWithLinks(object) {
   // object should be an { "Links": links, "Data": hex-encoded string } object
   // Aside from encoding differences, it should match the contents of the "ipfs object get --data-encoding=base64 Qm…hash" command
@@ -63,11 +79,16 @@ function ipfsBlockWithLinks(object) {
   for (var i = 0; i < links.length; i++) {
     var cid = links[i].Hash;
     var size = links[i].Size;
+    var name = links[i].Name;
 
-    // Add a first hardcoded part of the encoding.
-    result += '12' + '2a' + '0a';
+    result += '12';
+
+    var encodedLink = ''
+    // Some sort of separator or terminator
+    encodedLink += '0a';
+
     // size of the CID (32 bytes + 2 bytes header = 34 bytes = 22 in hex)
-    result += '22';
+    encodedLink += '22';
 
     if (cid[0] != 'f' || cid.length != 69) {
       throw "Expected a lowercase base16 CIDv1. The base16 encoding should start with 'f'" +
@@ -76,14 +97,22 @@ function ipfsBlockWithLinks(object) {
     }
 
     // Add the CID.
-    result += cid.substring(1);
+    encodedLink += cid.substring(1);
 
     // Add a second hardcoded part of the encoding.
-    result += '12' + '00' + '18';
+    encodedLink += '12';
+    // length of filename
+    encodedLink += integerToHexVarint(name.length);
+    encodedLink += utf8StringToHex(name);
+
+    encodedLink += '18';
 
     // Add the size.
-    result += integerToHexVarint(size);
+    encodedLink += integerToHexVarint(size);
 
+    var encodedLinkSize = encodedLink.length/2
+    result += integerToHexVarint(encodedLinkSize);
+    result += encodedLink;
   }
 
   // Some sort of separator or terminator
@@ -113,74 +142,26 @@ function ipfsBlockWithFile(fileHex) {
   return result;
 }
 
-function ipfsBlockWithDirectory(object) {
-  var links = object.Links;
-  var data = object.Data;
-  var result = '';
+document.write('<p>'+hexVarintToInteger('8f9007')+'</p>');
+document.write('<p>'+hexVarintToInteger('8e9007')+'</p>');
+document.write('<p>'+hexVarintToInteger('00')+'</p>');
+document.write('<p>'+hexVarintToInteger('01')+'</p>');
+document.write('<p>'+hexVarintToInteger('ac02')+'</p>');
+document.write('<p>'+hexVarintToInteger('9db005')+'</p>');
+document.write('<p>'+hexVarintToInteger('8e8010')+'</p>');
 
-  for (var i = 0; i < links.length; i++) {
-    var cid = links[i].Hash;
-    var size = links[i].Size;
-    var name = links[i].Name;
-
-    result += '12';
-    // size of something
-    result += '36';
-    // some sort of separator or terminator
-    result += '0a';
-    // size of the CID (32 bytes + 2 bytes header = 34 bytes = 22 in hex)
-    result += '22';
-
-    if (cid[0] != 'f' || cid.length != 69) {
-      throw "Expected a lowercase base16 CIDv1. The base16 encoding should start with 'f'" +
-      /*+*/ " and have a length of 32 bytes (64 hexadecimal characters) plus the leading prefix 'f1220' (length of 69 characters in total)" +
-      /*+*/ " as described in https://github.com/multiformats/multibase. The given hash started with " + cid[0] + " and had a length of " + cid.length;
-    }
-
-    // Add the CID.
-    result += cid.substring(1);
-
-    // Add a second hardcoded part of the encoding.
-    result += '12';
-    // length of filename
-    result += integerToHexVarint(name.length);
-    result += stringToHex(name.length);
-
-    result += '18';
-
-    // Add the size.
-    result += integerToHexVarint(size);
-  }
-
-  // some sort of separator or terminator
-  result += '0a';
-
-  dataSize = data.length/2;
-  result += integerToHexVarint(dataSize);
-  result += data;
-
-  return result;
-}
-
-document.write('<p>'+hexVarintToInteger('8f9007'));
-document.write('<p>'+hexVarintToInteger('8e9007'));
-document.write('<p>'+hexVarintToInteger('00'));
-document.write('<p>'+hexVarintToInteger('01'));
-document.write('<p>'+hexVarintToInteger('ac02'));
-document.write('<p>'+hexVarintToInteger('9db005'));
-document.write('<p>'+hexVarintToInteger('8e8010'));
-
-document.write('<p>'+integerToHexVarint(262158));
-document.write('<p>'+integerToHexVarint(88093));
-document.write('<p>'+integerToHexVarint(300));
-document.write('<p>'+integerToHexVarint(1));
-document.write('<p>'+integerToHexVarint(0));
+document.write('<p>'+integerToHexVarint(262158)+'</p>');
+document.write('<p>'+integerToHexVarint(88093)+'</p>');
+document.write('<p>'+integerToHexVarint(300)+'</p>');
+document.write('<p>'+integerToHexVarint(1)+'</p>');
+document.write('<p>'+integerToHexVarint(0)+'</p>');
 //                                      116751
-document.write('<p>'+integerToHexVarint(116741));
-document.write('<p>'+integerToHexVarint(116740));
-document.write('<p>'+integerToHexVarint("indexyz.html".length));
-document.write('<p>'+integerToHexVarint(116755));
+document.write('<p>'+integerToHexVarint(116741)+'</p>');
+document.write('<p>'+integerToHexVarint(116740)+'</p>');
+document.write('<p>'+integerToHexVarint("indexyz.html".length)+'</p>');
+document.write('<p>'+integerToHexVarint(116755)+'</p>');
 
+// .ipfs/blocks/Q5/CIQIX5HLOY4SWJHZGH347OHATMFMMMRYCKAU3KHSCL735U4OTTPNQ5I.data
 document.write('<p>'+ipfsBlockWithLinks({
   "Links": [
     {
@@ -195,8 +176,9 @@ document.write('<p>'+ipfsBlockWithLinks({
     }
   ],
   "Data": "0802188fb01520808010208fb005"
-}));
+})+'</p>');
 
+// .ipfs/blocks/OD/CIQEZBBJX4QYOWN5PECDC2PGQXAXANXYF56NCX5JIPDWHR6HDJBAODY.data
 document.write('<p>'+ipfsBlockWithFile(
 "3c21444f43545950452068746d6c3e0a3c68746d6c3e0a3c686561643e0a" +
 "3c6d65746120687474702d65717569763d22436f6e74656e742d54797065" +
@@ -4090,9 +4072,9 @@ document.write('<p>'+ipfsBlockWithFile(
 "28736372697074293b0a20207d2928293b0a20205f5f5f6769745f747574" +
 "6f7269616c5f6f6e6c6f616428290a3c2f7363726970743e0a3c2f626f64" +
 "793e0a3c2f68746d6c3e0a"
-));
+)+'</p>');
 
-document.write('<p>'+ipfsBlockWithDirectory(
+document.write('<p>'+ipfsBlockWithLinks(
 {
   "Links": [
     {
@@ -4103,7 +4085,8 @@ document.write('<p>'+ipfsBlockWithDirectory(
   ],
   "Data": "0801"
 }
-));
+)+'</p>');
 
 </script>
+</body>
 </html>
