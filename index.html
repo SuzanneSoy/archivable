@@ -125,20 +125,39 @@ function ipfsBlockWithLinks(object) {
   return result;
 }
 
-function ipfsBlockWithFile(fileHex) {
-  var size = fileHex.length / 2;
+function ipfsBlockWithFile(object) {
+  var fileHex = object.File;
+  var result = '';
+
+  var totalSize = (fileHex || '').length / 2;
+  for (var i = 0; i < object.Links.length; i++) {
+    totalSize += object.Links[i].Size;
+  }
 
   var encodedData = '';
-  encodedData += '08' + '02' + '12';
-  encodedData += integerToHexVarint(size);
-  encodedData += fileHex;
-  encodedData += '18' + '85' + '90' + '07';
-  encodedDataSize = encodedData.length / 2;
+  //             '08'   '02'
+  encodedData += '08' + '02';
+  // field 12 seems to be optional (for DAG nodes with links (groups of blocks and directories))
+  if (fileHex !== false) {
+    encodedData += '12';
+    encodedData += integerToHexVarint(totalSize);
+    encodedData += fileHex;
+  }
+  //            '18' [8f b0 15 = total size of contents of the file = 35022300]
+  encodedData += '18' + integerToHexVarint(totalSize);
+  for (var j = 0; j < object.Links.length; j++) {
+    // 20 [80 80 10 = size of contents of block 1 = 262144]
+    // 20 [8f b0 05 = size of contents of block 2 = 88079]
+    encodedData += '20';
+    encodedData += integerToHexVarint(object.Links[j].Size);
+  }
 
-  var result = '';
+  // common bit
   result += '0a'
+  encodedDataSize = encodedData.length / 2;
   result += integerToHexVarint(encodedDataSize);
   result += encodedData;
+
   return result;
 }
 
@@ -149,6 +168,9 @@ document.write('<p>'+hexVarintToInteger('01')+'</p>');
 document.write('<p>'+hexVarintToInteger('ac02')+'</p>');
 document.write('<p>'+hexVarintToInteger('9db005')+'</p>');
 document.write('<p>'+hexVarintToInteger('8e8010')+'</p>');
+document.write('<p>'+hexVarintToInteger('8fb015')+'</p>');
+document.write('<p>'+hexVarintToInteger('8fb005')+'</p>');
+document.write('<p>'+hexVarintToInteger('808010')+'</p>');
 
 document.write('<p>'+integerToHexVarint(262158)+'</p>');
 document.write('<p>'+integerToHexVarint(88093)+'</p>');
@@ -175,11 +197,13 @@ document.write('<p>'+ipfsBlockWithLinks({
       "Size": 88093
     }
   ],
-  "Data": "0802188fb01520808010208fb005"
+  "Data": "080218" + /* total size (sum of sizes) */ "8fb015" + "20808010208fb005"
 })+'</p>');
 
 // .ipfs/blocks/OD/CIQEZBBJX4QYOWN5PECDC2PGQXAXANXYF56NCX5JIPDWHR6HDJBAODY.data
-document.write('<p>'+ipfsBlockWithFile(
+document.write('<p>'+ipfsBlockWithFile({
+  "Links": [],
+  "File":
 "3c21444f43545950452068746d6c3e0a3c68746d6c3e0a3c686561643e0a" +
 "3c6d65746120687474702d65717569763d22436f6e74656e742d54797065" +
 "2220636f6e74656e743d22746578742f68746d6c3b20636861727365743d" +
@@ -4072,6 +4096,7 @@ document.write('<p>'+ipfsBlockWithFile(
 "28736372697074293b0a20207d2928293b0a20205f5f5f6769745f747574" +
 "6f7269616c5f6f6e6c6f616428290a3c2f7363726970743e0a3c2f626f64" +
 "793e0a3c2f68746d6c3e0a"
+}
 )+'</p>');
 
 document.write('<p>'+ipfsBlockWithLinks(
