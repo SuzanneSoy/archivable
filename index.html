@@ -24,6 +24,100 @@ function hexVarintToInteger(str) {
   return total;
 }
 
+function hexStringToIntegerList(str) {
+  var s = String(str);
+  var result = [];
+  for (var i = 0; i < s.length; i+=2) {
+    result[i/2] = parseInt(s.substring(i, i+2), 16);
+  }
+  return result;
+}
+
+function sha256IntegerListToMultihash(lst) {
+  // 0x20 is the length of the hash.
+  var result = [parseInt('01', 16), parseInt('70', 16), parseInt('12', 16), parseInt('20', 16)];
+  for (var i = 0; i < lst.length; i++) {
+    result[i+4] = lst[i];
+  }
+  var z = '01 70 12 20 8b f4eb76392b24f931f7cfb8e09b0ac6323812814da8f212ffbed38e9cded8750';
+  var w = []
+  for (var j = 0; j < z.length/2; j++) {
+    w[j] = parseInt((z[j*2] + '' + z[j*2+1]), 16);
+  }
+  //return w;
+  return result;
+}
+
+function integerListToLowercaseBase16Multibase(lst) {
+  var result = '';
+  for (var i = 0; i < lst.length; i++) {
+    var hex = lst[i].toString(16);
+    if (hex.length < 2) { hex = '0' + hex; }
+    result += hex;
+  }
+  return 'f' + result;
+}
+
+function int8ListToBitList(lst) {
+  var result = [];
+  for (var i = 0; i < lst.length; i++) {
+    result[i*8+0] = (lst[i] & 128) ? 1 : 0;
+    result[i*8+1] = (lst[i] & 64) ? 1 : 0;
+    result[i*8+2] = (lst[i] & 32) ? 1 : 0;
+    result[i*8+3] = (lst[i] & 16) ? 1 : 0;
+    result[i*8+4] = (lst[i] & 8) ? 1 : 0;
+    result[i*8+5] = (lst[i] & 4) ? 1 : 0;
+    result[i*8+6] = (lst[i] & 2) ? 1 : 0;
+    result[i*8+7] = (lst[i] & 1) ? 1 : 0;
+  }
+  return result;
+}
+
+function base32StringToBitList(str) {
+  var baseChars = 'abcdefghijklmnopqrstuvwxyz234567';
+  var s = String(str);
+  var result = [];
+  for (var i = 0; i < s.length; i++) {
+    var part = baseChars.indexOf(s[i]);
+    console.log(part);
+    //for (var j = 0; j < 6; j++) {
+    //  result[i*6+j] = (part & Math.pow(2, 6-1-j)) ? 1 : 0;
+    //}
+    result[i*5+0] = (part & 16) ? 1 : 0;
+    result[i*5+1] = (part & 8) ? 1 : 0;
+    result[i*5+2] = (part & 4) ? 1 : 0;
+    result[i*5+3] = (part & 2) ? 1 : 0;
+    result[i*5+4] = (part & 1) ? 1 : 0;
+  }
+  return result;
+}
+
+function integerListToLowercaseBase32Multibase(lst) {
+  var baseChars = 'abcdefghijklmnopqrstuvwxyz234567';
+  var result = '';
+  var l = int8ListToBitList(lst);
+
+  for (var i = 0; i < l.length; i+= 5) {
+    var get = function(j) { return ((i+j) < l.length) ? l[i+j] : 0; };
+    var part = get(0) * 16 + get(1) * 8 + get(2) * 4 + get(3) * 2 + get(4) * 1;
+    result += baseChars[part];
+  }
+  return 'b' + result;
+}
+
+function base32StringToBase16LowercaseMultibase(str) {
+  var baseChars = '0123456789abcdef';
+  var result = '';
+  var l = base32StringToBitList(str);
+
+  for (var i = 0; i < l.length; i+= 4) {
+    var get = function(j) { return ((i+j) < l.length) ? l[i+j] : 0; };
+    var part = get(0) * 8 + get(1) * 4 + get(2) * 2 + get(3) * 1;
+    result += baseChars[part];
+  }
+  return 'f' + result;
+}
+
 function integerToHexVarint(i) {
   // This function takes a JavaScript integer and returns a hexadecimal string representing that integer encoded as a protobuf varint according to the rules explained at
   // https://developers.google.com/protocol-buffers/docs/encoding
@@ -69,17 +163,21 @@ function ipfsBlockWithLinks(object) {
   // A Qm…hash can be converted to a "CIDv1 base16 lowercase" hash on the command-line using the following code:
   //   ipfs cid format -v 1 -b base16 -f='%m' Qm…hash
   //
-  // "Data" should be the hex-encoded (base 16, lowercase, no prefix) data as given by the following command:
+  // "File" should be the hex-encoded (base 16, lowercase, no prefix) data, or "false" when the entry is not a DAG leaf
+  //
+  // The "Data" field as given by the following command
   //   ipfs object get --data-encoding=base64 Qm…hash | jq -r '.Data' | base64 -d | xxd -ps
+  // is automatically generated using the "File" field if present and the various sizes etc.
 
   var links = object.Links;
-  var data = object.Data;
+  var fileHex = object.File;
   var result = '';
 
   for (var i = 0; i < links.length; i++) {
     var cid = links[i].Hash;
     var size = links[i].Size;
     var name = links[i].Name;
+    var fileHex = object.File;
 
     result += '12';
 
@@ -115,50 +213,50 @@ function ipfsBlockWithLinks(object) {
     result += encodedLink;
   }
 
-  // Some sort of separator or terminator
-  result += '0a';
-
-  dataSize = data.length/2;
-  result += integerToHexVarint(dataSize);
-  result += data;
-
-  return result;
-}
-
-function ipfsBlockWithFile(object) {
-  var fileHex = object.File;
-  var result = '';
+  // Generate the "Data" field
 
   var totalSize = (fileHex || '').length / 2;
   for (var i = 0; i < object.Links.length; i++) {
-    totalSize += object.Links[i].Size;
+    totalSize += object.Links[i].ContentSize;
   }
 
   var encodedData = '';
-  //             '08'   '02'
-  encodedData += '08' + '02';
-  // field 12 seems to be optional (for DAG nodes with links (groups of blocks and directories))
-  if (fileHex !== false) {
-    encodedData += '12';
-    encodedData += integerToHexVarint(totalSize);
-    encodedData += fileHex;
-  }
-  //            '18' [8f b0 15 = total size of contents of the file = 35022300]
-  encodedData += '18' + integerToHexVarint(totalSize);
-  for (var j = 0; j < object.Links.length; j++) {
-    // 20 [80 80 10 = size of contents of block 1 = 262144]
-    // 20 [8f b0 05 = size of contents of block 2 = 88079]
-    encodedData += '20';
-    encodedData += integerToHexVarint(object.Links[j].Size);
+  if (object.isFile) {
+    //             '08'   '02'
+    encodedData += '08' + '02';
+    // field 12 seems to be optional (for DAG nodes with links (groups of blocks and directories))
+    if (fileHex !== false) {
+      encodedData += '12';
+      encodedData += integerToHexVarint(totalSize);
+      encodedData += fileHex;
+    }
+    //            '18' [8f b0 15 = total size of contents of the file = 35022300]
+    encodedData += '18' + integerToHexVarint(totalSize);
+    for (var j = 0; j < object.Links.length; j++) {
+      // 20 [80 80 10 = size of contents of block 1 = 262144]
+      // 20 [8f b0 05 = size of contents of block 2 = 88079]
+      encodedData += '20';
+      encodedData += integerToHexVarint(object.Links[j].ContentSize);
+    }
+  } else {
+    // directory
+    encodedData += '08' + '01';
   }
 
-  // common bit
-  result += '0a'
-  encodedDataSize = encodedData.length / 2;
+  // Some sort of separator or terminator
+  result += '0a';
+  var encodedDataSize = encodedData.length / 2;
   result += integerToHexVarint(encodedDataSize);
   result += encodedData;
 
   return result;
+}
+
+function ipfsHashWithLinks(object) {
+  //return ipfsBlockWithLinks(object);
+  return integerListToLowercaseBase32Multibase(sha256IntegerListToMultihash(sha256(hexStringToIntegerList(ipfsBlockWithLinks(object)))));
+  // hexStringToIntegerList returns 18, 42, 10, 34, 18, 32, 120, 255, 157, 89, 175, 64, 223, 99, 155, 82, 0, 24, 108, 52, 202, 0, 236, 138, 178, 18, 106, 53, 172, 134, 165, 233, 4, 201, 174, 190, 141, 168, 18, 0, 24, 142, 128, 16, 18, 42, 10, 34, 18, 32, 105, 19, 98, 121, 88, 141, 86, 231, 233, 97, 94, 180, 172, 89, 9, 54, 138, 201, 99, 69, 120, 200, 78, 29, 68, 246, 170, 207, 97, 142, 170, 213, 18, 0, 24, 157, 176, 5, 10, 14, 8, 2, 24, 143, 176, 21, 32, 128, 128, 16, 32, 143, 176, 5
+  // sha256 returns 139, 244, 235, 118, 57, 43, 36, 249, 49, 247,…
 }
 
 document.write('<p>'+hexVarintToInteger('8f9007')+'</p>');
@@ -184,25 +282,29 @@ document.write('<p>'+integerToHexVarint("indexyz.html".length)+'</p>');
 document.write('<p>'+integerToHexVarint(116755)+'</p>');
 
 // .ipfs/blocks/Q5/CIQIX5HLOY4SWJHZGH347OHATMFMMMRYCKAU3KHSCL735U4OTTPNQ5I.data
-document.write('<p>'+ipfsBlockWithLinks({
+document.write('<p>'+ipfsHashWithLinks({
   "Links": [
     {
       "Name": "",
       "Hash": "f122078ff9d59af40df639b5200186c34ca00ec8ab2126a35ac86a5e904c9aebe8da8",
-      "Size": 262158
+      "Size": 262158,
+      "ContentSize": 262144
     },
     {
       "Name": "",
       "Hash": "f122069136279588d56e7e9615eb4ac5909368ac9634578c84e1d44f6aacf618eaad5",
-      "Size": 88093
+      "Size": 88093,
+      "ContentSize": 88079
     }
   ],
-  "Data": "080218" + /* total size (sum of sizes) */ "8fb015" + "20808010208fb005"
+  "isFile": true,
+  "File": false
 })+'</p>');
 
 // .ipfs/blocks/OD/CIQEZBBJX4QYOWN5PECDC2PGQXAXANXYF56NCX5JIPDWHR6HDJBAODY.data
-document.write('<p>'+ipfsBlockWithFile({
+document.write('<p>'+ipfsHashWithLinks({
   "Links": [],
+  "isFile": true,
   "File":
 "3c21444f43545950452068746d6c3e0a3c68746d6c3e0a3c686561643e0a" +
 "3c6d65746120687474702d65717569763d22436f6e74656e742d54797065" +
@@ -4099,7 +4201,8 @@ document.write('<p>'+ipfsBlockWithFile({
 }
 )+'</p>');
 
-document.write('<p>'+ipfsBlockWithLinks(
+// .ipfs/blocks/6R/CIQJBPUGOIEEA4VHFMM5KDNT5YQH6XC6M34T46HFUGBVSSP3BBCE6RI.data
+document.write('<p>'+ipfsHashWithLinks(
 {
   "Links": [
     {
@@ -4108,7 +4211,8 @@ document.write('<p>'+ipfsBlockWithLinks(
       "Size": 116755
     }
   ],
-  "Data": "0801"
+  "isFile": true,
+  "File": false,
 }
 )+'</p>');
 
