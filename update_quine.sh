@@ -23,14 +23,14 @@ xxd -ps < "$directory"/index.html | tr -d \\n | fold -w 160 | sed -e 's/.*''/"&"
 printf %s\\n 'var hexLineWidth = 160;'              >> "$temp_file"
 printf %s\\n 'function srcdirectory (index_html) {' >> "$temp_file"
 
-printf %s 'return ' >> "$temp_file"
+printf %s '  return ' >> "$temp_file"
 # TODO: use ipfs dag get instead of ipfs object get
-partial_hash=ipfs add --pin=false "$directory"
+partial_hash="$(ipfs add --pin=false --hidden -Qr "$directory")"
 ipfs object get "$partial_hash" \
 | jq '.Links |= map(if .Name == "index.html" then { "Name": .Name, "Hash": "XXX_PLACEHOLDER_HASH_XXX", "Size": "XXX_PLACEHOLDER_SIZE_XXX" } else . end)' \
-| sed -e 's/^/  /' -e '$s/$/;/' -e 's/XXX_PLACEHOLDER_HASH_XXX/index_html.hash/' -e 's/XXX_PLACEHOLDER_SIZE_XXX/index_html.block.length/' \
+| sed -e '2,$s/^/  /' -e '$s/$/;/' -e 's/["'\'']XXX_PLACEHOLDER_HASH_XXX["'\'']/index_html.hash/' -e 's/["'\'']XXX_PLACEHOLDER_SIZE_XXX["'\'']/index_html.block.length/' \
 >> "$temp_file"
-printf %s '}' >> "$temp_file"
+printf %s\\n '}' >> "$temp_file"
 
 printf %s\\n '// XXX_PLACE''HOLDER_END_XXX' >> "$temp_file"
 
