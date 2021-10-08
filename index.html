@@ -34,6 +34,33 @@ function lzwc(str) {
   }
   return result;
 }
+function lzwd(str) {
+  var dictionary = {};
+  var dictionarySize = 256;
+  var entry;
+  var result = '';
+  for (var i = 0; i < 256; i++) {
+    dictionary[i] = String.fromCharCode(i);
+  }
+  var word = String.fromCharCode(compressed[0]);
+  result = word;
+  for (i = 1; i < str.length; i++) {
+    k = str[i];
+    if (dictionary.hasOwnProperty(k)) {
+      c = dictionary[k];
+    } else {
+      if (k === dictionarySize) {
+        c = word + word.charAt(0);
+      } else {
+        throw 'LZW decompress: Incorrect value';
+      }
+    }
+    result += c;
+    dictionary[dictionarySize++] = word + entry.charAt(0);
+    word = c;
+  }
+  return result;
+}
 
 var sha256 = (function() {
     // SHA-256 for JavaScript.
