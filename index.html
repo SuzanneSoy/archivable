@@ -8,17 +8,12 @@
 <script src="directory_hashes.js"></script>
 <script src="lzw.js"></script>
 <script src="sha256.js"></script>
-<script src="ipfs.js"></script>
-<script src="ipfs_self_hash.js"></script>
+<script src="micro_ipfs.js"></script>
 <script>
-function my_show_link(root, good_vanity) {
-  console.log('cccc');
-  //document.getElementById('self-src').innerText = hexStringToString(root.src3); // only with the quine version
-  document.getElementById('ipfs-link').innerHTML = '<a href="ipfs://' + root.hash + '"">Permalink to this file: ipfs://'+root.hash+'</a> vanity = <span id="ipfs-vanity">' + good_vanity + "</span>";
-}
-console.log('aaaaa');
-ipfs_self_hash(my_show_link);
-console.log('bbbbb');
+(function() {
+  var hash = ipfs_self_hash.get_link();
+  document.getElementById('ipfs-link').innerHTML = '<a href="ipfs://' + hash + '"">Permalink to this file: ipfs://'+hash+'</a>';
+})();
 </script>
 </body>
 </html>

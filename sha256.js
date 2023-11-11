@@ -200,3 +200,5 @@ var sha256 = (function() {
     }
     return hash;
 })();
+
+if (typeof module != 'undefined') { module.exports = { sha256 : sha256 }; }

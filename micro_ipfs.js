@@ -1,3 +1,6 @@
+// for nodejs
+if (typeof sha256 == 'undefined' && typeof require != 'undefined') { try { sha256 = require('./sha256.js').sha256; } catch (e) {console.log(e);} }
+
 var micro_ipfs = (function() {
   var hexVarintToInteger = function(str) {
     var s = String(str);
@@ -16,7 +19,7 @@ var micro_ipfs = (function() {
       offset *= Math.pow(2,7);
     }
     return total;
-  }
+  };
   
   var hexStringToIntegerList = function(str) {
     var s = String(str);
@@ -25,7 +28,7 @@ var micro_ipfs = (function() {
       result[i/2] = parseInt(s.substring(i, i+2), 16);
     }
     return result;
-  }
+  };
   
   var hexStringToString = function(str) {
     var s = String(str);
@@ -34,7 +37,7 @@ var micro_ipfs = (function() {
       result += String.fromCharCode(parseInt(s.substring(i, i+2), 16));
     }
     return result;
-  }
+  };
   
   var sha256IntegerListToMultihash = function(base, lst) {
     // 0x20 is the length of the hash.
@@ -51,7 +54,7 @@ var micro_ipfs = (function() {
       result[j+i] = lst[j];
     }
     return result;
-  }
+  };
   
   var integerListToLowercaseBase16Multibase = function(lst) {
     var result = '';
@@ -61,7 +64,7 @@ var micro_ipfs = (function() {
       result += hex;
     }
     return 'f' + result;
-  }
+  };
   
   var int8ListToBitList = function(lst) {
     var result = [];
@@ -76,7 +79,7 @@ var micro_ipfs = (function() {
       result[i*8+7] = (lst[i] & 1) ? 1 : 0;
     }
     return result;
-  }
+  };
   
   var base32StringToBitList = function(str) {
     var baseChars = 'abcdefghijklmnopqrstuvwxyz234567';
@@ -94,7 +97,7 @@ var micro_ipfs = (function() {
       result[i*5+4] = (part & 1) ? 1 : 0;
     }
     return result;
-  }
+  };
   
   // https://gist.github.com/diafygi/90a3e80ca1c2793220e5/, license: wtfpl
   var from_b58 = function(S,A){var d=[],b=[],i,j,c,n;for(i in S){j=0,c=A.indexOf(S[i]);if(c<0)return undefined;c||b.length^i?i:b.push(0);while(j in d||c){n=d[j];n=n?n*58+c:c;c=n>>8;d[j]=n%256;j++}}while(j--)b.push(d[j]);return new Uint8Array(b)};
@@ -109,7 +112,7 @@ var micro_ipfs = (function() {
       result += hex;
     }
     return result;
-  }
+  };
   
   var integerListToLowercaseBase32Multibase = function(lst) {
     var baseChars = 'abcdefghijklmnopqrstuvwxyz234567';
@@ -122,7 +125,7 @@ var micro_ipfs = (function() {
       result += baseChars[part];
     }
     return 'b' + result;
-  }
+  };
   
   var base32StringToBase16LowercaseMultibase = function(str) {
     var baseChars = '0123456789abcdef';
@@ -135,7 +138,7 @@ var micro_ipfs = (function() {
       result += baseChars[part];
     }
     return 'f' + result;
-  }
+  };
   
   var integerToHexVarint = function(i) {
     // This function takes a JavaScript integer and returns a hexadecimal string representing that integer encoded as a protobuf varint according to the rules explained at
@@ -171,7 +174,7 @@ var micro_ipfs = (function() {
       result += hex;
     }
     return result;
-  }
+  };
   
   var ipfsBlockWithLinks = function(object) {
     // object should be an { "Links": links, "Data": hex-encoded string } object
@@ -277,7 +280,7 @@ var micro_ipfs = (function() {
     result += encodedData;
   
     return result;
-  }
+  };
   
   var ipfsHashWithLinks = function(base, object) {
     var block = hexStringToIntegerList(ipfsBlockWithLinks(object));
@@ -290,10 +293,104 @@ var micro_ipfs = (function() {
     } else {
       return { "hash" : integerListToLowercaseBase32Multibase(hash), "block" : block };
     }
-  }
+  };
 
   return {
     utf8StringToHex: utf8StringToHex,
     hashWithLinks: ipfsHashWithLinks
-  }
+  };
 })();
+
+var ipfs_self_hash = (function() {
+    var ipfs = micro_ipfs;
+    var get_root_with_vanity = function(vanity_attempt, ipfs_directory_hashes) {
+      var find_link_entry = function() {
+        for (var i = 0; i < ipfs_directory_hashes.tree.Links.length; i++) {
+          if (ipfs_directory_hashes.tree.Links[i].Name == 'directory_hashes.js') {
+            return i;
+          }
+        }
+      }
+      var foo_link_entry = find_link_entry();
+      ipfs_directory_hashes.tree.Links[foo_link_entry].Hash = "";
+      ipfs_directory_hashes.tree.Links[foo_link_entry].Size = 0;
+      ipfs_directory_hashes.vanity_number = vanity_attempt;
+  
+      // TODO: using JSON.stringify to recreate the file is more brittle, better store the stringified version as a hex string, and then decode it?
+      var file_directory_hashes = 'var ipfs_directory_hashes=' + JSON.stringify(ipfs_directory_hashes) + '; if (typeof module != \'undefined\') { module.exports = { ipfs_directory_hashes: ipfs_directory_hashes }; }\n';
+      var foo = ipfs.hashWithLinks(16, {
+        "Links": [],
+        "isFile": true,
+        "File": ipfs.utf8StringToHex(file_directory_hashes)
+      });
+  
+      ipfs_directory_hashes.tree.Links[foo_link_entry].Hash = foo.hash;
+      ipfs_directory_hashes.tree.Links[foo_link_entry].Size = foo.block.length;
+  
+      root = ipfs.hashWithLinks(32, ipfs_directory_hashes.tree);
+      return root;
+    };
+  
+    var expected_vanity_attempt = 32*32*32;
+    var max_vanity_attempt = expected_vanity_attempt*10;
+    function find_vanity_node(old_root, vanity_text, vanity_attempt, ipfs_directory_hashes) {
+      while (true) {
+        if (vanity_attempt > max_vanity_attempt) {
+          // give up:
+          return null;
+        } else {
+          var root = get_root_with_vanity(vanity_attempt, ipfs_directory_hashes);
+          if (root.hash[root.hash.length-1] == vanity_text[2] && root.hash[root.hash.length-2] == vanity_text[1]) {
+            console.error(vanity_attempt + ' (' + Math.floor(100*vanity_attempt/expected_vanity_attempt) + '%)');
+            if (root.hash[root.hash.length-3] == vanity_text[0]) {
+              return vanity_attempt;
+            }
+          }
+          vanity_attempt++;
+        }
+      }
+    };
+
+    function find_vanity_browser(old_root, vanity_text, vanity_attempt, callback, ipfs_directory_hashes) {
+      var root = get_root_with_vanity(vanity_attempt, ipfs_directory_hashes);
+      if (vanity_attempt > max_vanity_attempt) {
+        // give up:
+        root = get_root_with_vanity(ipfs_directory_hashes.vanity_number, ipfs_directory_hashes)
+        callback(root, 'timeout', false);
+      } else {
+        if (root.hash[root.hash.length-1] == vanity_text[2]) {
+          callback(old_root, '… ' + vanity_attempt + ' (' + Math.floor(100*vanity_attempt/expected_vanity_attempt) + '%)', false);
+          if (root.hash[root.hash.length-2] == vanity_text[1] && root.hash[root.hash.length-3] == vanity_text[0]) {
+            callback(root, vanity_attempt, true);
+          } else {
+            window.setTimeout(function() { find_vanity_browser(old_root, vanity_text, vanity_attempt + 1, callback, ipfs_directory_hashes); }, 0);
+          }
+        } else {
+          window.setTimeout(function() { find_vanity_browser(old_root, vanity_text, vanity_attempt + 1, callback, ipfs_directory_hashes); }, 0);
+        }
+      }
+    };
+  
+    var debug = function(show_link) {
+      var root = get_root_with_vanity(ipfs_directory_hashes.vanity_number, ipfs_directory_hashes);
+      var vanity_text = ipfs_directory_hashes.vanity_text;
+  
+      if (root.hash[root.hash.length-1] == vanity_text[2] && root.hash[root.hash.length-2] == vanity_text[1] && root.hash[root.hash.length-3] == vanity_text[0]) {
+        // vanity check is ok
+        show_link(root, ipfs_directory_hashes.vanity_number, true);
+      } else {
+        // Brute-force to try to find a number that gives the desired last 3 characters
+        show_link(root, '…', false);
+        find_vanity_browser(root, vanity_text, 0, show_link, ipfs_directory_hashes);
+      }
+    };
+
+    var get_link = function get_link() {
+      var root = get_root_with_vanity(ipfs_directory_hashes.vanity_number, ipfs_directory_hashes);
+      return root.hash;
+    };
+    
+    return { get_link: get_link, find_vanity_browser: find_vanity_browser, find_vanity_node: find_vanity_node };
+  })();
+
+  if (typeof module != 'undefined') { module.exports = { micro_ipfs : micro_ipfs, ipfs_self_hash : ipfs_self_hash }; }
