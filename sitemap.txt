@@ -1,0 +1,12 @@
+https://suzanne.soy/archivable/.ipfsignore
+https://suzanne.soy/archivable/update_quine.sh
+https://suzanne.soy/archivable/update_directory_hashes.sh
+https://suzanne.soy/archivable/sha256.js
+https://suzanne.soy/archivable/index.html
+https://suzanne.soy/archivable/micro_ipfs.js
+https://suzanne.soy/archivable/lzw.js
+https://suzanne.soy/archivable/quine.js
+https://suzanne.soy/archivable/.ipfsignore
+https://suzanne.soy/archivable/find_vanity.js
+https://suzanne.soy/archivable/directory_hashes.js
+https://suzanne.soy/archivable/sitemap.txt
