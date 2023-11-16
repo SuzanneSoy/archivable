@@ -311,6 +311,7 @@ var ipfs_self_hash = (function() {
           }
         }
         console.error(ipfs_directory_hashes);
+        console.error(ipfs_directory_hashes.tree.Links);
         throw "Could not find entry for directory_hashes.js";
       }
       var foo_link_entry = find_link_entry();
