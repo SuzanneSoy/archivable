@@ -9,7 +9,9 @@
         src = self;
         propagatedBuildInputs = with pkgs; [kubo jq nodejs-slim]; # TODO: actually fixup the script
         buildPhase = ''
-          cp update_directory_hashes.sh "$out"
+          mkdir "$out"
+          mkdir "$out/bin"
+          cp update_directory_hashes.sh "$out/bin/update-directory-hashes"
         '';
       };
   };
