@@ -15,8 +15,14 @@ if test -z "$vanity_text" -o "$vanity_text" = "-h" -o "$vanity_text" = "--help";
   exit 1
 fi
 
-# TODO: use ipfs dag get instead of ipfs object get
 touch "$directory/directory_hashes.js"
+cat > "$directory/ipfs-add.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euET -o pipefail
+ipfs cid base32 "$(ipfs add --ignore-rules-path result/www/.ipfsignore --pin=false --hidden -Qr "$(dirname "$0")/www")"
+EOF
+
+# TODO: use ipfs dag get instead of ipfs object get
 partial_hash="$(ipfs add --ignore-rules-path "$directory/.ipfsignore" --pin=false --hidden -Qr "$directory")"
 foo="$(ipfs object get "$partial_hash" | jq '.Links |= map(if .Name == "directory_hashes.js" then { "Name": .Name, "Hash": "", "Size": 0 } else . end)' )"
 
