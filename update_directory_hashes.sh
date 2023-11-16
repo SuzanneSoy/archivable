@@ -16,7 +16,7 @@ if test -z "$vanity_text" -o "$vanity_text" = "-h" -o "$vanity_text" = "--help";
 fi
 
 # TODO: use ipfs dag get instead of ipfs object get
-partial_hash="$(ipfs add --ignore-rules-path .ipfsignore --pin=false --hidden -Qr "$directory")"
+partial_hash="$(ipfs add --ignore-rules-path "$directory/.ipfsignore" --pin=false --hidden -Qr "$directory")"
 foo="$(ipfs object get "$partial_hash" | jq '.Links |= map(if .Name == "directory_hashes.js" then { "Name": .Name, "Hash": "", "Size": 0 } else . end)' )"
 
 write_directory_hashes() {
@@ -30,4 +30,4 @@ printf 'Found vanity number: %s\n' $vanity_number >&3
 write_directory_hashes "$vanity_number"
 
 echo "The hash given by the page should be:" >&2
-printf 'ipfs://%s\n' "$(ipfs cid base32 "$(ipfs add --ignore-rules-path .ipfsignore --hidden -Qr "$directory")")"
+printf 'ipfs://%s\n' "$(ipfs cid base32 "$(ipfs add --ignore-rules-path "$directory/.ipfsignore" --hidden -Qr "$directory")")"
