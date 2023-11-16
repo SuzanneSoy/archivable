@@ -7,7 +7,7 @@
       pkgs.stdenv.mkDerivation {
         name = "update-directory-hashes";
         src = self;
-        buildInputs = with pkgs; [kubo jq nodejs-slim];
+        propagatedBuildInputs = with pkgs; [kubo jq nodejs-slim]; # TODO: actually fixup the script
         buildPhase = ''
           cp update_directory_hashes.sh "$out"
         '';
