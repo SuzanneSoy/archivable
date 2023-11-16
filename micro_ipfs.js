@@ -310,6 +310,7 @@ var ipfs_self_hash = (function() {
             return i;
           }
         }
+        throw "Could not find entry for directory_hashes.js";
       }
       var foo_link_entry = find_link_entry();
       ipfs_directory_hashes.tree.Links[foo_link_entry].Hash = "";
