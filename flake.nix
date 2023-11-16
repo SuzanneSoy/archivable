@@ -13,7 +13,7 @@
           mkdir "$out/bin"
           mkdir -p "$out/nix-support"
           echo "$propagatedBuildInputs" > "$out/nix-support/propagated-build-inputs"
-          cp find_vanity.js directory_hashes.js micro_ipfs.js sha256.js "$out/bin/"
+          cp find_vanity.js micro_ipfs.js sha256.js "$out/bin/"
           cp update_directory_hashes.sh "$out/bin/update-directory-hashes"
         '';
       };

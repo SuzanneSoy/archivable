@@ -2,6 +2,9 @@
 
 set -euET -o pipefail
 
+node "$(dirname "$0")/find_vanity.js" "directory-hashes.js"
+exit
+
 vanity_text="${1:-xyz}"
 directory="${2:-.}"
 

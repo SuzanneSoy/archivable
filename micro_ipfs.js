@@ -317,7 +317,7 @@ var ipfs_self_hash = (function() {
       ipfs_directory_hashes.vanity_number = vanity_attempt;
   
       // TODO: using JSON.stringify to recreate the file is more brittle, better store the stringified version as a hex string, and then decode it?
-      var file_directory_hashes = 'var ipfs_directory_hashes=' + JSON.stringify(ipfs_directory_hashes) + '; if (typeof module != \'undefined\') { module.exports = { ipfs_directory_hashes: ipfs_directory_hashes }; }\n';
+      var file_directory_hashes = 'jsonp_ipfs_directory_hashes(' + JSON.stringify(ipfs_directory_hashes) + ');\n';
       var foo = ipfs.hashWithLinks(16, {
         "Links": [],
         "isFile": true,
@@ -392,5 +392,9 @@ var ipfs_self_hash = (function() {
     
     return { get_link: get_link, find_vanity_browser: find_vanity_browser, find_vanity_node: find_vanity_node };
   })();
+
+  function jsonp_ipfs_directory_hashes(arg) {
+    ipfs_directory_hashes = arg;
+  }
 
   if (typeof module != 'undefined') { module.exports = { micro_ipfs : micro_ipfs, ipfs_self_hash : ipfs_self_hash }; }
