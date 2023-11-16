@@ -2,9 +2,6 @@
 
 set -euET -o pipefail
 
-node "$(dirname "$0")/find_vanity.js" "directory-hashes.js"
-exit
-
 vanity_text="${1:-xyz}"
 directory="${2:-.}"
 
@@ -28,7 +25,7 @@ write_directory_hashes() {
 }
 
 write_directory_hashes "0"
-vanity_number="$(node find_vanity.js)"
+vanity_number="$(node "$(dirname "$0")/find_vanity.js" "$directory/directory-hashes.js")"
 printf 'Found vanity number: %s\n' $vanity_number >&3
 write_directory_hashes "$vanity_number"
 
