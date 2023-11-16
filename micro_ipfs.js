@@ -336,16 +336,31 @@ var ipfs_self_hash = (function() {
   
     var expected_vanity_attempt = 32*32*32;
     var max_vanity_attempt = expected_vanity_attempt*10;
-    function find_vanity_node(old_root, vanity_text, vanity_attempt, ipfs_directory_hashes) {
+    function find_vanity_node(vanity_text, vanity_attempt, ipfs_directory_hashes) {
+      if ((! (typeof vanity_text == 'string' || vanity_text instanceof String)) || vanity_text.length != 3) {
+        throw 'find_vanity_node(vanity_text, ...) : expected a string of length 3';
+      }
+      var offset = 1;
+      switch (vanity_text[2]) {
+        case '4':
+        case 'a':
+        case 'e':
+        case 'i':
+        case 'm':
+        case 'q':
+        case 'u':
+        case 'y':
+          offset = 0;
+      }
       while (true) {
         if (vanity_attempt > max_vanity_attempt) {
           // give up:
-          return null;
+          throw 'Failed to brute-force a number that generates the desired vanity text.';
         } else {
           var root = get_root_with_vanity(vanity_attempt, ipfs_directory_hashes);
-          if (root.hash[root.hash.length-1] == vanity_text[2] && root.hash[root.hash.length-2] == vanity_text[1]) {
+          if (root.hash[root.hash.length-1-offset] == vanity_text[2] && root.hash[root.hash.length-2-offset] == vanity_text[1]) {
             console.error(vanity_attempt + ' (' + Math.floor(100*vanity_attempt/expected_vanity_attempt) + '%)');
-            if (root.hash[root.hash.length-3] == vanity_text[0]) {
+            if (root.hash[root.hash.length-3-offset] == vanity_text[0]) {
               return vanity_attempt;
             }
           }
@@ -354,24 +369,43 @@ var ipfs_self_hash = (function() {
       }
     };
 
-    function find_vanity_browser(old_root, vanity_text, vanity_attempt, callback, ipfs_directory_hashes) {
+    function find_vanity_browser_(offset, old_root, vanity_text, vanity_attempt, callback, ipfs_directory_hashes) {
       var root = get_root_with_vanity(vanity_attempt, ipfs_directory_hashes);
       if (vanity_attempt > max_vanity_attempt) {
         // give up:
         root = get_root_with_vanity(ipfs_directory_hashes.vanity_number, ipfs_directory_hashes)
         callback(root, 'timeout', false);
       } else {
-        if (root.hash[root.hash.length-1] == vanity_text[2]) {
+        if (root.hash[root.hash.length-1-offset] == vanity_text[2]) {
           callback(old_root, '… ' + vanity_attempt + ' (' + Math.floor(100*vanity_attempt/expected_vanity_attempt) + '%)', false);
-          if (root.hash[root.hash.length-2] == vanity_text[1] && root.hash[root.hash.length-3] == vanity_text[0]) {
+          if (root.hash[root.hash.length-2-offset] == vanity_text[1] && root.hash[root.hash.length-3-offset] == vanity_text[0]) {
             callback(root, vanity_attempt, true);
           } else {
-            window.setTimeout(function() { find_vanity_browser(old_root, vanity_text, vanity_attempt + 1, callback, ipfs_directory_hashes); }, 0);
+            window.setTimeout(function() { find_vanity_browser_(offset, old_root, vanity_text, vanity_attempt + 1, callback, ipfs_directory_hashes); }, 0);
           }
         } else {
-          window.setTimeout(function() { find_vanity_browser(old_root, vanity_text, vanity_attempt + 1, callback, ipfs_directory_hashes); }, 0);
+          window.setTimeout(function() { find_vanity_browser_(offset, old_root, vanity_text, vanity_attempt + 1, callback, ipfs_directory_hashes); }, 0);
         }
       }
+    };
+
+    var find_vanity_browser = function(old_root, vanity_text, vanity_attempt, callback, ipfs_directory_hashes) {
+      if ((! (typeof vanity_text == 'string' || vanity_text instanceof String)) || vanity_text.length != 3) {
+        throw 'find_vanity_node(vanity_text, ...) : expected a string of length 3';
+      }
+      var offset = 1;
+      switch (vanity_text[2]) {
+        case '4':
+        case 'a':
+        case 'e':
+        case 'i':
+        case 'm':
+        case 'q':
+        case 'u':
+        case 'y':
+          offset = 0;
+      }
+      return find_vanity_browser(offset, old_root, vanity_text, vanity_attempt, callback, ipfs_directory_hashes)
     };
   
     var debug = function(show_link) {
