@@ -19,7 +19,7 @@ touch "$directory/directory_hashes.js"
 cat > "$directory/ipfs-add.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euET -o pipefail
-ipfs cid base32 "$(ipfs add --ignore-rules-path result/www/.ipfsignore --pin=false --hidden -Qr "$(dirname "$0")/www")"
+ipfs cid base32 "$(ipfs add --ignore-rules-path result/www/.ipfsignore --pin=false --hidden -Qr "$(dirname "$0")")"
 EOF
 
 # TODO: use ipfs dag get instead of ipfs object get
