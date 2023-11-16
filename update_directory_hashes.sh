@@ -25,7 +25,7 @@ write_directory_hashes() {
 }
 
 write_directory_hashes "0"
-vanity_number="$(node "$(dirname "$0")/find_vanity.js" "$directory/directory-hashes.js")"
+vanity_number="$(node "$(dirname "$0")/find_vanity.js" "$directory/directory_hashes.js")"
 printf 'Found vanity number: %s\n' $vanity_number >&3
 write_directory_hashes "$vanity_number"
 
