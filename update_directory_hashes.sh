@@ -26,8 +26,8 @@ write_directory_hashes() {
 
 write_directory_hashes "0"
 vanity_number="$(node find_vanity.js)"
-printf 'Found vanity number: %s\n' $vanity_number
+printf 'Found vanity number: %s\n' $vanity_number >&3
 write_directory_hashes "$vanity_number"
 
-echo "The hash given by the page should be:"
+echo "The hash given by the page should be:" >&2
 printf 'ipfs://%s\n' "$(ipfs cid base32 "$(ipfs add --ignore-rules-path .ipfsignore --hidden -Qr "$directory")")"
