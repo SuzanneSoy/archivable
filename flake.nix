@@ -13,6 +13,7 @@
           mkdir "$out/bin"
           mkdir -p "$out/nix-support"
           echo "$propagatedBuildInputs" > "$out/nix-support/propagated-build-inputs"
+          cp find_vanity.js "$out/bin/"
           cp update_directory_hashes.sh "$out/bin/update-directory-hashes"
         '';
       };
