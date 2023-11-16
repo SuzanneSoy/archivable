@@ -16,12 +16,13 @@ if test -z "$vanity_text" -o "$vanity_text" = "-h" -o "$vanity_text" = "--help";
 fi
 
 # TODO: use ipfs dag get instead of ipfs object get
+touch "$directory/directory_hashes.js"
 partial_hash="$(ipfs add --ignore-rules-path "$directory/.ipfsignore" --pin=false --hidden -Qr "$directory")"
 foo="$(ipfs object get "$partial_hash" | jq '.Links |= map(if .Name == "directory_hashes.js" then { "Name": .Name, "Hash": "", "Size": 0 } else . end)' )"
 
 write_directory_hashes() {
   contents="$(printf %s "$foo" | jq -r '{vanity_text:"'"$vanity_text"'", vanity_number:'$1',tree:.} | tostring')"
-  printf 'jsonp_ipfs_directory_hashes(%s);\n' "$contents" > "$directory"/directory_hashes.js
+  printf 'jsonp_ipfs_directory_hashes(%s);\n' "$contents" > "$directory/directory_hashes.js"
 }
 
 write_directory_hashes "0"
