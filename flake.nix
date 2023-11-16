@@ -11,6 +11,8 @@
         buildPhase = ''
           mkdir "$out"
           mkdir "$out/bin"
+          mkdir -p "$out/nix-support"
+          echo "$propagatedBuildInputs" > "$out/nix-support/propagated-build-inputs"
           cp update_directory_hashes.sh "$out/bin/update-directory-hashes"
         '';
       };
