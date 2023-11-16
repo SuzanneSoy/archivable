@@ -21,6 +21,7 @@ cat > "$directory/ipfs-add.sh" <<'EOF'
 set -euET -o pipefail
 ipfs cid base32 "$(ipfs add --ignore-rules-path result/www/.ipfsignore --pin=false --hidden -Qr "$(dirname "$0")")"
 EOF
+chmod +x "$directory/ipfs-add.sh"
 
 # TODO: use ipfs dag get instead of ipfs object get
 partial_hash="$(ipfs add --ignore-rules-path "$directory/.ipfsignore" --pin=false --hidden -Qr "$directory")"
@@ -32,7 +33,7 @@ write_directory_hashes() {
 }
 
 write_directory_hashes "0"
-vanity_number="$(node "$(dirname "$0")/find_vanity.js" "$directory/directory_hashes.js")"
+vanity_number="$(node "$(dirname "$0")/find_vanity.js" "$directory/directory_hashes.js" "$vanity_text")"
 printf 'Found vanity number: %s\n' $vanity_number >&2
 write_directory_hashes "$vanity_number"
 
