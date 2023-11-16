@@ -21,7 +21,7 @@ foo="$(ipfs object get "$partial_hash" | jq '.Links |= map(if .Name == "director
 
 write_directory_hashes() {
   contents="$(printf %s "$foo" | jq -r '{vanity_text:"'"$vanity_text"'", vanity_number:'$1',tree:.} | tostring')"
-  printf 'var ipfs_directory_hashes=%s; if (typeof module != '\''undefined'\'') { module.exports = { ipfs_directory_hashes: ipfs_directory_hashes }; }\n' "$contents" > "$directory"/directory_hashes.js
+  printf 'jsonp_ipfs_directory_hashes(%s);\n' "$contents" > "$directory"/directory_hashes.js
 }
 
 write_directory_hashes "0"
