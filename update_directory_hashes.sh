@@ -23,8 +23,8 @@ set -euET -o pipefail
 
 usage() {
   printf "Usage:\n"
-  printf "  %s --pin=true" "$0"
-  printf "  %s --pin=false" "$0"
+  printf "  %s --pin=true\n" "$0"
+  printf "  %s --pin=false\n" "$0"
 }
 if test $# -lt 1; then usage; exit 1; fi
 if test "x$1" = "x-h" || test "x$1" = "x--help"; then usage; exit 0; fi
