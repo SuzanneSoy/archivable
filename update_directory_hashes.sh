@@ -19,7 +19,12 @@ touch "$directory/directory_hashes.js"
 cat > "$directory/ipfs-add.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euET -o pipefail
-ipfs cid base32 "$(ipfs add --ignore-rules-path "$(dirname "$0")/.ipfsignore" --pin=false --hidden -Qr "$(dirname "$0")")"
+if test $# -lt 1 || (test "x$1" != "x--pin=true" && test "x$1" != "x--pin=false"); then
+  printf "Usage:\n"
+  printf "  %s --pin=true" "$0"
+  printf "  %s --pin=false" "$0"
+fi
+ipfs cid base32 "$(ipfs add --ignore-rules-path "$(dirname "$0")/.ipfsignore" "$1" --hidden -Qr "$(dirname "$0")")"
 EOF
 chmod +x "$directory/ipfs-add.sh"
 
